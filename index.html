@@ -3,44 +3,55 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#0f2a1e">
 <title>SGPA Hospital Bills — USC</title>
+
+<!-- Tab / bookmark / home-screen icons (files sit next to this index.html).
+     Bump the ?v= number when you change an icon, so browsers fetch the new one. -->
+<link rel="icon" href="/favicon.ico?v=1" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=1">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=1">
+
 <style>
   html, body {
     margin: 0;
     padding: 0;
     height: 100%;
     overflow: hidden;
-    background: #ffffff;
+    background: #0f2a1e;
+    font-family: Arial, sans-serif;
   }
 
-  /* ── VIDEO LOADER ── */
+  /* Entry animation: loading.mp4 on white, then fades into the app */
   #loader {
     position: fixed;
     inset: 0;
-    z-index: 2;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     background: #ffffff;
-    transition: opacity 0.5s cubic-bezier(.16,.8,.24,1),
-                filter  0.5s cubic-bezier(.16,.8,.24,1);
+    z-index: 2;
+    transition: opacity 0.45s ease;
   }
-  #loader.loader-hide {
-    opacity: 0;
-    filter: blur(6px);
-    pointer-events: none;
+  #loader video {
+    max-width: min(70vw, 360px);
+    max-height: 50vh;
+    display: block;
   }
-  #loader-video {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-    background: #ffffff;
-    /* Makes near-white video pixels blend into the white page, hiding any box edges */
-    mix-blend-mode: multiply;
+  #loader .spinner {
+    display: none;                       /* shown only if the video cannot play */
+    width: 36px;
+    height: 36px;
+    border: 3px solid rgba(15, 42, 30, 0.18);
+    border-top-color: #00a651;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
   }
+  #loader.no-video video { display: none; }
+  #loader.no-video .spinner { display: block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* ── APP FRAME ── */
   #app-frame {
     position: fixed;
     top: 0; left: 0;
@@ -48,99 +59,57 @@
     height: 100%;
     border: none;
     z-index: 1;
-    opacity: 0;
-    filter: blur(10px);
-    transform: scale(1.015) translateY(10px);
-    transition: opacity 0.7s cubic-bezier(.16,.8,.24,1),
-                filter  0.7s cubic-bezier(.16,.8,.24,1),
-                transform 0.7s cubic-bezier(.16,.8,.24,1);
-  }
-  #app-frame.frame-ready {
-    opacity: 1;
-    filter: blur(0);
-    transform: scale(1) translateY(0);
   }
 
   @media (prefers-reduced-motion: reduce) {
-    #loader, #app-frame {
-      transition: none !important;
-      filter: none !important;
-      transform: none !important;
-    }
-    #loader-video { display: none; }
+    #loader { transition: none; }
+    #loader .spinner { animation-duration: 2s; }
   }
 </style>
-
-<script>
-  // The app is revealed only when BOTH are true:
-  //   1) the video has finished (or failed / was skipped), and
-  //   2) the GAS app has finished loading in the hidden iframe.
-  var VIDEO_MAX_WAIT_MS = 8000;   // never hold the student longer than this for the video
-  var HARD_TIMEOUT_MS   = 12000;  // reveal regardless (slow network safety net)
-
-  var frameLoaded = false;
-  var videoDone   = false;
-  var revealed    = false;
-
-  function revealApp() {
-    if (revealed) return;
-    revealed = true;
-    document.getElementById('app-frame').classList.add('frame-ready');
-    var loader = document.getElementById('loader');
-    loader.classList.add('loader-hide');
-    setTimeout(function () {
-      loader.style.display = 'none';
-      var v = document.getElementById('loader-video');
-      if (v) { v.pause(); }
-    }, 600);
-  }
-
-  function tryReveal() {
-    if (frameLoaded && videoDone) revealApp();
-  }
-
-  function onFrameLoad() { frameLoaded = true; tryReveal(); }
-  function onVideoDone() { videoDone = true;   tryReveal(); }
-
-  document.addEventListener('DOMContentLoaded', function () {
-    var v = document.getElementById('loader-video');
-    var reduceMotion = window.matchMedia &&
-                       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    if (!v || reduceMotion) { onVideoDone(); return; }
-
-    v.addEventListener('ended', onVideoDone);
-    v.addEventListener('error', onVideoDone);   // file missing / unsupported -> skip video
-
-    // Autoplay can be blocked (e.g. iOS Low Power Mode). If so, skip straight to the app.
-    var p = v.play();
-    if (p && typeof p.catch === 'function') p.catch(onVideoDone);
-
-    setTimeout(onVideoDone, VIDEO_MAX_WAIT_MS);
-  });
-
-  setTimeout(revealApp, HARD_TIMEOUT_MS);
-</script>
 </head>
 <body>
 
-  <div id="loader">
-    <video id="loader-video"
-           src="loading.mp4"
-           muted
-           playsinline
-           autoplay
-           preload="auto"
-           aria-hidden="true"></video>
+  <div id="loader" role="status" aria-label="Loading SGPA Hospital Bills">
+    <video id="intro" src="/loading.mp4" autoplay muted playsinline preload="auto"></video>
+    <div class="spinner"></div>
   </div>
 
   <iframe
     id="app-frame"
     src="https://script.google.com/macros/s/AKfycbzq_PYMsB9AYlOvKAJuLYQYA1qZA3CTnQzOSLhyAPpIjoq6Zs6WUZs6KM-6aIvOHrkS/exec"
-    title="SGPA Hospital Bills Portal"
-    allow="clipboard-write"
-    onload="onFrameLoad()">
+    title="SGPA Hospital Bills"
+    allow="clipboard-write">
   </iframe>
+
+<script>
+(function () {
+  var loader = document.getElementById('loader');
+  var frame  = document.getElementById('app-frame');
+  var intro  = document.getElementById('intro');
+  var appReady = false, introDone = false, revealed = false;
+
+  // Reveal only when BOTH the intro has finished and the app has loaded.
+  function reveal() {
+    if (revealed || !appReady || !introDone) return;
+    revealed = true;
+    loader.style.opacity = '0';
+    setTimeout(function () { loader.style.display = 'none'; }, 480);
+  }
+  function endIntro() { introDone = true; reveal(); }
+
+  frame.addEventListener('load', function () { appReady = true; reveal(); });
+
+  // The intro never blocks the app: no video, a blocked video or a slow one all fall through.
+  intro.addEventListener('ended', endIntro);
+  intro.addEventListener('error', function () { loader.classList.add('no-video'); introDone = true; reveal(); });
+  var p = intro.play && intro.play();
+  if (p && p.catch) p.catch(function () { loader.classList.add('no-video'); introDone = true; reveal(); });
+
+  // Safety nets
+  setTimeout(endIntro, 6000);                                       // intro never longer than 6 s
+  setTimeout(function () { appReady = true; reveal(); }, 20000);    // never stay stuck on the loader
+})();
+</script>
 
 </body>
 </html>
